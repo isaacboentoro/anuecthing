@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isBefore, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 import type { Post } from './types';
@@ -12,6 +12,7 @@ interface CalendarViewProps {
   posts: Post[];
   onPostMove: (postId: string, newDate: Date) => void;
   onCreatePost: (date: Date) => void;
+  onEditPost?: (post: Post) => void; // <-- add this prop
 }
 
 const PostCard: React.FC<{ post: Post }> = ({ post }) => {
@@ -57,7 +58,8 @@ const CalendarDay: React.FC<{
   isCurrentMonth: boolean;
   onPostMove: (postId: string, newDate: Date) => void;
   onCreatePost: (date: Date) => void;
-}> = ({ date, posts, isCurrentMonth, onPostMove, onCreatePost }) => {
+  onEditPost?: (post: Post) => void;
+}> = ({ date, posts, isCurrentMonth, onPostMove, onCreatePost, onEditPost }) => {
   const [{ isOver }, drop] = useDrop({
     accept: 'post',
     drop: (item: { id: string }) => {
@@ -69,26 +71,38 @@ const CalendarDay: React.FC<{
   });
 
   const dayPosts = posts.filter(post => isSameDay(post.scheduledDate, date));
+  const today = startOfDay(new Date());
+  const isPast = isBefore(startOfDay(date), today);
 
   return (
     <div
       ref={drop as any}
       className={`min-h-[120px] p-2 border border-gray-200 ${
-        !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
+        !isCurrentMonth ? 'bg-gray-50 text-gray-400' : isPast ? 'bg-gray-100 text-gray-400' : 'bg-white'
       } ${isOver ? 'bg-blue-50' : ''}`}
     >
       <div className="flex justify-between items-start mb-2">
         <span className="text-sm font-medium">{format(date, 'd')}</span>
         <button
-          onClick={() => onCreatePost(date)}
-          className="text-gray-400 hover:text-blue-600 transition-colors"
+          onClick={() => !isPast && onCreatePost(date)}
+          className={`text-gray-400 hover:text-blue-600 transition-colors ${isPast ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+          disabled={isPast}
         >
           <Plus size={14} />
         </button>
       </div>
       <div className="space-y-1">
         {dayPosts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <div key={post.id} className="flex flex-wrap gap-1">
+            <div
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                onEditPost?.(post);
+              }}
+            >
+              <PostCard post={post} />
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -99,6 +113,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   posts,
   onPostMove,
   onCreatePost,
+  onEditPost,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -148,6 +163,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               isCurrentMonth={isSameMonth(date, currentDate)}
               onPostMove={onPostMove}
               onCreatePost={onCreatePost}
+              onEditPost={onEditPost} // <-- ensure this is passed
             />
           ))}
         </div>

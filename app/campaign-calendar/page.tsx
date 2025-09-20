@@ -35,16 +35,18 @@ export default function CampaignCalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const handlePostMove = useCallback((postId: string, newDate: Date) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, scheduledDate: newDate }
-        : post
-    ));
+    setPosts(prev =>
+      prev.map(post =>
+        post.id === postId
+          ? { ...post, scheduledDate: newDate }
+          : post
+      )
+    );
   }, []);
 
   const handleCreatePost = useCallback((date: Date) => {
+    setEditingPost(undefined); // Ensure no previous post details
     setSelectedDate(date);
-    setEditingPost(undefined);
     setShowPostEditor(true);
   }, []);
 
@@ -54,13 +56,23 @@ export default function CampaignCalendarPage() {
     setShowPostEditor(true);
   }, []);
 
+  const handleCloseEditor = useCallback(() => {
+    setShowPostEditor(false);
+    setEditingPost(undefined); // Reset editing post
+    setSelectedDate(undefined); // Reset selected date
+  }, []);
+
   const handleSavePost = useCallback((post: Post) => {
-    if (editingPost) {
-      setPosts(prev => prev.map(p => p.id === post.id ? post : p));
-    } else {
-      setPosts(prev => [...prev, post]);
-    }
-  }, [editingPost]);
+    setPosts(prev => {
+      const exists = prev.some(p => p.id === post.id);
+      if (exists) {
+        return prev.map(p => p.id === post.id ? post : p);
+      } else {
+        return [...prev, post];
+      }
+    });
+    setShowPostEditor(false); // <-- close editor after save
+  }, []);
 
   const handlePublishPost = useCallback((post: Post) => {
     // Here you would integrate with social media APIs synchronously for the editor callback
@@ -75,6 +87,14 @@ export default function CampaignCalendarPage() {
   const handleMediaUpload = useCallback((media: any[]) => {
     console.log('Media uploaded:', media);
     // Handle media upload logic
+  }, []);
+
+  const handleDeleteScheduledPost = useCallback((postId: string) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+  }, []);
+
+  const handleDeleteDraftPost = useCallback((postId: string) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
   }, []);
 
   return (
@@ -132,6 +152,19 @@ export default function CampaignCalendarPage() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-4 space-y-2">
+                  {posts.filter(p => p.status === 'scheduled').map(post => (
+                    <div key={post.id} className="flex items-center justify-between text-sm bg-blue-50 rounded px-2 py-1">
+                      <span className="truncate">{post.title}</span>
+                      <button
+                        className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        onClick={() => handleDeleteScheduledPost(post.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
               
               <div className="bg-white rounded-lg shadow p-6">
@@ -154,6 +187,19 @@ export default function CampaignCalendarPage() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-4 space-y-2">
+                  {posts.filter(p => p.status === 'draft').map(post => (
+                    <div key={post.id} className="flex items-center justify-between text-sm bg-gray-50 rounded px-2 py-1">
+                      <span className="truncate">{post.title}</span>
+                      <button
+                        className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        onClick={() => handleDeleteDraftPost(post.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -162,6 +208,7 @@ export default function CampaignCalendarPage() {
               posts={posts}
               onPostMove={handlePostMove}
               onCreatePost={handleCreatePost}
+              onEditPost={handleEditPost}
             />
 
             {/* Post Editor Modal */}
@@ -169,7 +216,7 @@ export default function CampaignCalendarPage() {
               post={editingPost}
               initialDate={selectedDate}
               isOpen={showPostEditor}
-              onClose={() => setShowPostEditor(false)}
+              onClose={handleCloseEditor}
               onSave={handleSavePost}
               onPublish={handlePublishPost}
               contentUploader={

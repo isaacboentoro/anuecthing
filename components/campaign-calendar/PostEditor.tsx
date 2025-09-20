@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Calendar, Clock, Send, Save, Eye } from "lucide-react";
 import { format } from "date-fns";
 import type { Post } from './types';
@@ -46,17 +46,35 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   mediaUrl,
   contentUploader, // add here
 }) => {
-  const [formData, setFormData] = useState<Post>({
-    title: "",
-    content: "",
-    platforms: [],
-    scheduledDate: initialDate || new Date(),
-    scheduledTime: "12:00",
-    status: "draft",
+  const [formData, setFormData] = useState<Post>(() => {
+    if (post) return post;
+    return {
+      id: '',
+      title: '',
+      content: '',
+      platforms: [],
+      scheduledDate: initialDate ?? new Date(),
+      status: 'draft',
+    };
   });
 
   const [showPreview, setShowPreview] = useState(false);
   const [additionalDates, setAdditionalDates] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (post) {
+      setFormData(post);
+    } else {
+      setFormData({
+        id: '',
+        title: '',
+        content: '',
+        platforms: [],
+        scheduledDate: initialDate ?? new Date(),
+        status: 'draft',
+      });
+    }
+  }, [post, initialDate, isOpen]);
 
   useEffect(() => {
     if (post) {
@@ -179,7 +197,34 @@ export const PostEditor: React.FC<PostEditorProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar size={16} className="inline mr-1" />Date</label>
-                  <input type="date" value={format(formData.scheduledDate, "yyyy-MM-dd")} onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: new Date(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <input
+                    type="date"
+                    value={
+                      formData.scheduledDate instanceof Date && !isNaN(formData.scheduledDate.getTime())
+                        ? format(formData.scheduledDate, "yyyy-MM-dd")
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const prev = formData.scheduledDate instanceof Date && !isNaN(formData.scheduledDate.getTime())
+                        ? formData.scheduledDate
+                        : new Date();
+                      const [year, month, day] = e.target.value.split('-').map(Number);
+                      // preserve time from previous date
+                      const newDate = new Date(
+                        year,
+                        month - 1,
+                        day,
+                        prev.getHours(),
+                        prev.getMinutes(),
+                        prev.getSeconds()
+                      );
+                      setFormData((prevForm) => ({
+                        ...prevForm,
+                        scheduledDate: newDate,
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2"><Clock size={16} className="inline mr-1" />Time</label>
