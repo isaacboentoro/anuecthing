@@ -129,7 +129,7 @@ export default function CampaignCalendarPage() {
                Create Post
              </button>
 
-             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+             {/* <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                <BarChart3 size={16} />
                Analytics
              </button>
@@ -137,7 +137,7 @@ export default function CampaignCalendarPage() {
              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                <Settings size={16} />
                Settings
-             </button>
+             </button> */}
            </div>
         </div>
 

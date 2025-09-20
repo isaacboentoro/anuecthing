@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import NavBar from "@/components/navbar/NavBar"; // or relative path if you don't use @ alias
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <main className="flex-grow min-h-screen bg-white text-gray-900">
+          <NavBar />
+          {/* add top padding equal to navbar height so content is not overlapped */}
+          <main className="flex-grow min-h-screen bg-white text-gray-900 pt-12">
             {children}
           </main>
         </ThemeProvider>
