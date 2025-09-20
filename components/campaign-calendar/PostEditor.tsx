@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Calendar, Clock, Send, Save, Eye } from "lucide-react";
+import { X, Eye } from "lucide-react";
 import { format } from "date-fns";
 import type { Post } from './types';
 
@@ -23,6 +23,10 @@ interface PostEditorProps {
   onPublish?: (post: Post) => void;
   // Add contentUploader prop
   contentUploader?: React.ReactNode;
+  // Accept FormComponent and CalendarComponent as props
+  FormComponent?: React.ComponentType<any>;
+  CalendarComponent?: React.ComponentType<any>;
+  onDelete?: (postId: string) => void;
 }
 
 const PLATFORMS = [
@@ -44,73 +48,92 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   onPublish,
   mediaId,
   mediaUrl,
-  contentUploader, // add here
+  contentUploader,
+  FormComponent,
+  CalendarComponent,
+  onDelete,
 }) => {
-  const [formData, setFormData] = useState<Post>(() => {
-    if (post) return post;
-    return {
-      id: '',
-      title: '',
-      content: '',
-      platforms: [],
-      scheduledDate: initialDate ?? new Date(),
-      status: 'draft',
-    };
-  });
-
+  // Form state
+  const [title, setTitle] = useState(post?.title ?? "");
+  const [content, setContent] = useState(post?.content ?? "");
+  const [platforms, setPlatforms] = useState<string[]>(post?.platforms ?? []);
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(post?.scheduledDate ?? initialDate);
   const [showPreview, setShowPreview] = useState(false);
   const [additionalDates, setAdditionalDates] = useState<string[]>([]);
 
+  // Add mount/animate state to enable enter/exit animations
+  const [mounted, setMounted] = useState<boolean>(isOpen);
+  const [animateIn, setAnimateIn] = useState<boolean>(false);
+
+  // close on Escape key
+  useEffect(() => {
+    if (!mounted) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mounted, onClose]);
+
   useEffect(() => {
     if (post) {
-      setFormData(post);
+      setTitle(post.title);
+      setContent(post.content);
+      setPlatforms(post.platforms);
+      setScheduledDate(post.scheduledDate);
     } else {
-      setFormData({
-        id: '',
-        title: '',
-        content: '',
-        platforms: [],
-        scheduledDate: initialDate ?? new Date(),
-        status: 'draft',
-      });
+      setTitle("");
+      setContent("");
+      setPlatforms([]);
+      setScheduledDate(initialDate);
     }
   }, [post, initialDate, isOpen]);
 
   useEffect(() => {
-    if (post) {
-      setFormData({
-        ...post,
-        scheduledTime: format(post.scheduledDate, "HH:mm"),
-      });
-    } else if (initialDate) {
-      setFormData((prev) => ({
-        ...prev,
-        scheduledDate: initialDate,
-      }));
-    }
     if (initialDates && initialDates.length) {
       setAdditionalDates(initialDates.slice(1));
       // if initialDates provided, set the primary scheduledDate to the first
       try {
         const d = new Date(initialDates[0]);
-        if (!isNaN(d.getTime())) setFormData((prev) => ({ ...prev, scheduledDate: d }));
+        if (!isNaN(d.getTime())) setScheduledDate(d);
       } catch (err) {
         // ignore
       }
     }
-  }, [post, initialDate, initialDates]);
+  }, [initialDates]);
+
+  useEffect(() => {
+    let t: number | undefined;
+    if (isOpen) {
+      // ensure animate state is reset, mount, then trigger enter animation on next tick
+      setAnimateIn(false);
+      setMounted(true);
+      t = window.setTimeout(() => setAnimateIn(true), 10); // small delay to ensure classes transition
+    } else {
+      // start exit animation, then unmount after duration
+      setAnimateIn(false);
+      t = window.setTimeout(() => setMounted(false), 200); // match duration below
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [isOpen]);
 
   const handleSubmit = (action: "save" | "schedule" | "publish") => {
-    const timeStr = formData.scheduledTime || '12:00';
+    const timeStr = '12:00';
     const [hours, minutes] = timeStr.split(":").map(Number);
 
-    const baseDates = [formData.scheduledDate, ...additionalDates.map((d) => new Date(d))];
+    const baseDates = [scheduledDate, ...additionalDates.map((d) => new Date(d))];
     const postsToCreate: Post[] = baseDates.map((d) => {
       const scheduledDateTime = new Date(d);
       scheduledDateTime.setHours(hours, minutes);
       return {
-        ...formData,
         id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+        title,
+        content,
+        platforms,
         scheduledDate: scheduledDateTime,
         status:
           action === "publish"
@@ -138,18 +161,22 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   };
 
   const togglePlatform = (platformId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      platforms: prev.platforms.includes(platformId) ? prev.platforms.filter((p) => p !== platformId) : [...prev.platforms, platformId],
-    }));
+    setPlatforms((prev) =>
+      prev.includes(platformId) ? prev.filter((p) => p !== platformId) : [...prev, platformId]
+    );
   };
 
-  if (!isOpen) return null;
+  if (!mounted) return null;
+
+  const isEditing = typeof post?.id === "string" && post?.id.length > 0;
 
   return (
     // overlay centers modal; modal is a flex column so header/content/footer layout allows inner scrolling
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 p-4 flex items-start justify-center overflow-auto">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden mx-auto">
+    <div
+      className={`fixed inset-0 z-50 p-4 flex items-start justify-center overflow-auto transition-opacity duration-200 ${animateIn ? "opacity-100" : "opacity-0"} backdrop-blur-sm bg-black/40`}
+      aria-hidden={!animateIn}
+    >
+      <div className={`bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden mx-auto transform transition-all duration-200 ${animateIn ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}`}>
         <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">{post ? "Edit Post" : "Create New Post"}</h2>
           <div className="flex items-center gap-2">
@@ -170,14 +197,14 @@ export const PostEditor: React.FC<PostEditorProps> = ({
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Post Title</label>
-                <input type="text" value={formData.title} onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))} placeholder="Enter post title..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter post title..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
 
               {/* Content */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
-                <textarea value={formData.content} onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))} placeholder="Write your post content..." rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" />
-                <p className="text-xs text-gray-500 mt-1">{formData.content.length} characters</p>
+                <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Write your post content..." rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" />
+                <p className="text-xs text-gray-500 mt-1">{content.length} characters</p>
               </div>
 
               {/* Platforms */}
@@ -185,7 +212,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">Platforms</label>
                 <div className="grid grid-cols-2 gap-2">
                   {PLATFORMS.map((platform) => (
-                    <button key={platform.id} onClick={() => togglePlatform(platform.id)} className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${formData.platforms.includes(platform.id) ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                    <button key={platform.id} onClick={() => togglePlatform(platform.id)} className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${platforms.includes(platform.id) ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
                       <div className={`w-3 h-3 rounded-full ${platform.color}`}></div>
                       <span className="font-medium">{platform.name}</span>
                     </button>
@@ -196,39 +223,40 @@ export const PostEditor: React.FC<PostEditorProps> = ({
               {/* Scheduling */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar size={16} className="inline mr-1" />Date</label>
-                  <input
-                    type="date"
-                    value={
-                      formData.scheduledDate instanceof Date && !isNaN(formData.scheduledDate.getTime())
-                        ? format(formData.scheduledDate, "yyyy-MM-dd")
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const prev = formData.scheduledDate instanceof Date && !isNaN(formData.scheduledDate.getTime())
-                        ? formData.scheduledDate
-                        : new Date();
-                      const [year, month, day] = e.target.value.split('-').map(Number);
-                      // preserve time from previous date
-                      const newDate = new Date(
-                        year,
-                        month - 1,
-                        day,
-                        prev.getHours(),
-                        prev.getMinutes(),
-                        prev.getSeconds()
-                      );
-                      setFormData((prevForm) => ({
-                        ...prevForm,
-                        scheduledDate: newDate,
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <div className="rounded border">
+                    {CalendarComponent ? (
+                      <CalendarComponent
+                        mode="single"
+                        selected={scheduledDate}
+                        onSelect={setScheduledDate}
+                        className="w-full"
+                      />
+                    ) : (
+                      <div className="text-red-500 text-sm">Calendar component not provided.</div>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2"><Clock size={16} className="inline mr-1" />Time</label>
-                  <input type="time" value={formData.scheduledTime} onChange={(e) => setFormData((prev) => ({ ...prev, scheduledTime: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                  <input
+                    type="time"
+                    value={
+                      scheduledDate !== undefined && scheduledDate !== null
+                        ? scheduledDate.toTimeString().slice(0,5)
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setScheduledDate((prev) => {
+                        if (!prev) return prev;
+                        const [hours, minutes] = e.target.value.split(":").map(Number);
+                        const newDate = new Date(prev);
+                        newDate.setHours(hours, minutes);
+                        return newDate;
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
               </div>
 
@@ -277,7 +305,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
             <div className="w-1/2 p-6 bg-gray-50 overflow-y-auto min-h-0">
               <h3 className="font-medium text-gray-800 mb-4">Preview</h3>
               <div className="space-y-4">
-                {formData.platforms.map((platformId) => {
+                {platforms.map((platformId) => {
                   const platform = PLATFORMS.find((p) => p.id === platformId);
                   return (
                     <div key={platformId} className="bg-white rounded-lg p-4 shadow-sm">
@@ -286,8 +314,8 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                         <span className="font-medium text-sm">{platform?.name}</span>
                       </div>
                       <div className="space-y-2">
-                        <h4 className="font-medium">{formData.title}</h4>
-                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{formData.content}</p>
+                        <h4 className="font-medium">{title}</h4>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{content}</p>
                       </div>
                     </div>
                   );
@@ -299,20 +327,47 @@ export const PostEditor: React.FC<PostEditorProps> = ({
 
         {/* Actions */}
         <div className="flex items-center justify-between p-6 border-t bg-gray-50 flex-shrink-0">
-          <div className="text-sm text-gray-600">Scheduled for {format(formData.scheduledDate, 'MMM d, yyyy')} at {formData.scheduledTime}</div>
+          <div className="text-sm text-gray-600">Scheduled for {format(scheduledDate ?? new Date(), 'MMM d, yyyy')} at {'12:00'}</div>
           <div className="flex gap-3">
             <button onClick={() => handleSubmit('save')} className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
-              <Save size={16} />
               Save Draft
             </button>
-            <button onClick={() => handleSubmit('schedule')} className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-              <Calendar size={16} />
-              Schedule
-            </button>
-            {onPublish && (
-              <button onClick={() => handleSubmit('publish')} className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                <Send size={16} />
-                Publish Now
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit('schedule')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit('publish')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Publish
+                </button>
+                {onDelete && post?.id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDelete(post.id);
+                      onClose();
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleSubmit('schedule')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Schedule
               </button>
             )}
           </div>

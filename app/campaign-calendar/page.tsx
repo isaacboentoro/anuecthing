@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import Link from 'next/link';
 import { CalendarView } from '@/components/campaign-calendar/CalendarView';
 import { PostEditor } from '@/components/campaign-calendar/PostEditor';
 import type { Post } from '@/components/campaign-calendar/types';
 import { ContentUploader } from '@/components/campaign-calendar/ContentUploader';
 import { Plus, Settings, BarChart3 } from 'lucide-react';
+import { Calendar } from "@/components/ui/calendar";
+import { Form } from "@/components/ui/form";
 
 export default function CampaignCalendarPage() {
   const [posts, setPosts] = useState<Post[]>([
@@ -60,7 +61,8 @@ export default function CampaignCalendarPage() {
     setSelectedDate(undefined);
   }, []);
 
-  const handleSavePost = useCallback((post: Post) => {
+  const handleSavePost = useCallback((post: Post | undefined) => {
+    if (!post) return; // Prevent error if post is undefined
     setPosts(prev => {
       const exists = prev.some(p => p.id === post.id);
       if (exists) {
@@ -98,6 +100,13 @@ export default function CampaignCalendarPage() {
     setShowPostEditor(true);
   }, []);
 
+  const handleDeletePost = useCallback((postId: string) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+    setShowPostEditor(false);
+    setEditingPost(undefined);
+    setSelectedDate(undefined);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -111,33 +120,25 @@ export default function CampaignCalendarPage() {
           </div>
           
           <div className="flex gap-3">
-            {/* Quick Create Post Button */}
-            <button
-              onClick={handleQuickCreatePost}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              <Plus size={16} />
-              Create Post
-            </button>
+             {/* Quick Create Post Button */}
+             <button
+               onClick={handleQuickCreatePost}
+               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+             >
+               <Plus size={16} />
+               Create Post
+             </button>
 
-            <Link
-              href="/campaign-calendar/walkthrough"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Plus size={16} />
-              Campaign Creator
-            </Link>
-
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-              <BarChart3 size={16} />
-              Analytics
-            </button>
-            
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-              <Settings size={16} />
-              Settings
-            </button>
-          </div>
+             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+               <BarChart3 size={16} />
+               Analytics
+             </button>
+             
+             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+               <Settings size={16} />
+               Settings
+             </button>
+           </div>
         </div>
 
         {/* Stats Cards */}
@@ -166,7 +167,7 @@ export default function CampaignCalendarPage() {
                   <span className="truncate text-gray-800">{post.title}</span>
                   <button
                     className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                    onClick={() => handleDeleteScheduledPost(post.id)}
+                    onClick={() => typeof post.id === 'string' && handleDeleteScheduledPost(post.id)}
                   >
                     Delete
                   </button>
@@ -201,7 +202,7 @@ export default function CampaignCalendarPage() {
                   <span className="truncate text-gray-800">{post.title}</span>
                   <button
                     className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                    onClick={() => handleDeleteDraftPost(post.id)}
+                    onClick={() => typeof post.id === 'string' && handleDeleteDraftPost(post.id)}
                   >
                     Delete
                   </button>
@@ -227,12 +228,15 @@ export default function CampaignCalendarPage() {
           onClose={handleCloseEditor}
           onSave={handleSavePost}
           onPublish={handlePublishPost}
+          onDelete={handleDeletePost}
           contentUploader={
             <ContentUploader
               onMediaUpload={handleMediaUpload}
               selectedPlatforms={['instagram', 'facebook', 'tiktok', 'youtube', 'linkedin']}
             />
           }
+          FormComponent={Form}
+          CalendarComponent={Calendar}
         />
       </div>
     </div>
