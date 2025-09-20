@@ -16,7 +16,7 @@ export default function CampaignCalendarPage() {
       title: 'New Product Launch',
       content: 'Excited to announce our latest product! 🚀 #newproduct #innovation',
       platforms: ['instagram', 'facebook', 'linkedin'],
-      scheduledDate: new Date(2024, 0, 15, 10, 0),
+      scheduledDate: new Date(2025, 8, 23, 10, 10),
       status: 'scheduled'
     },
     {
@@ -24,7 +24,7 @@ export default function CampaignCalendarPage() {
       title: 'Behind the Scenes',
       content: 'Take a look behind the scenes of our creative process! ✨',
       platforms: ['instagram', 'tiktok'],
-      scheduledDate: new Date(2024, 0, 18, 14, 30),
+      scheduledDate: new Date(2025, 8, 25, 10, 10),
       status: 'draft'
     }
   ]);

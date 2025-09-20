@@ -125,7 +125,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
     const timeStr = '12:00';
     const [hours, minutes] = timeStr.split(":").map(Number);
 
-    const baseDates = [scheduledDate, ...additionalDates.map((d) => new Date(d))];
+    const baseDates = [scheduledDate, ...additionalDates.map((d) => new Date(d))].filter((d): d is Date => d !== undefined);
     const postsToCreate: Post[] = baseDates.map((d) => {
       const scheduledDateTime = new Date(d);
       scheduledDateTime.setHours(hours, minutes);
@@ -352,7 +352,9 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      onDelete(post.id);
+                      if (post?.id) {
+                        onDelete(post.id);
+                      }
                       onClose();
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
