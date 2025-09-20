@@ -1,5 +1,6 @@
 'use client';
 
+import Image from "next/image";
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -57,10 +58,15 @@ export default function NavBar() {
         <div className="flex items-center justify-between h-full">
           {/* Left: Logo */}
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm w-9 h-9">
-              <span className="text-white font-semibold text-sm">A</span>
-            </div>
-
+              <Link href="/">
+                <Image 
+                  src="/logo.png"   // path relative to /public
+                  alt="Marketinc Logo"
+                  width={36}        // set the pixel size
+                  height={36}
+                  className="rounded-lg shadow-sm"
+                />
+              </Link>
             <div className="transition-opacity duration-200">
               <div className="text-sm font-semibold text-gray-800">Marketinc</div>
             </div>
