@@ -4,6 +4,9 @@ import React, { useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, Upload, Send, BarChart3, Users, Zap } from 'lucide-react';
+import { format } from 'date-fns';
+import { PostEditor } from '../components/campaign-calendar/PostEditor';
+import { ContentUploader } from '../components/campaign-calendar/ContentUploader';
 
 type PlatformId = 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'linkedin';
 
@@ -36,6 +39,10 @@ interface ScheduledPost {
 export default function Home() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorMediaId, setEditorMediaId] = useState<string | null>(null);
+  const [editorMediaUrl, setEditorMediaUrl] = useState<string | null>(null);
+  const [editorInitialDates, setEditorInitialDates] = useState<string[] | undefined>(undefined);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropHoverDate, setDropHoverDate] = useState<string | null>(null);
@@ -117,21 +124,12 @@ export default function Home() {
       setDropHoverDate(null);
       return;
     }
-
-    const platforms = item.platforms.length ? item.platforms : ['instagram'];
-    const newPost: ScheduledPost = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-      mediaId: item.id,
-      date: isoDate,
-      platforms,
-      title: item.name.replace(/\.[^/.]+$/, ''),
-      status: 'scheduled'
-    };
-    setPosts((p) => [...p, newPost]);
-
-    // clear dragging
-    setDraggingId(null);
-    setDropHoverDate(null);
+    // open PostEditor modal prefilled with this media and the drop date
+    setEditorMediaId(item.id);
+    setEditorMediaUrl(item.url);
+    // store the initial date so editor can prepopulate multiple dates if needed
+    setEditorInitialDates([isoDate]);
+    setIsEditorOpen(true);
   };
 
   const allowDrop = (e: React.DragEvent) => {
@@ -152,6 +150,25 @@ export default function Home() {
   const removeMedia = (id: string) => {
     setMedia((m) => m.filter((x) => x.id !== id));
     setPosts((p) => p.filter((post) => post.mediaId !== id));
+  };
+
+  // handler when PostEditor saves multiple posts
+  const handleSaveMultiplePosts = (createdPosts: any[]) => {
+    const newScheduled: ScheduledPost[] = createdPosts.map((cp) => ({
+      id: cp.id || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)),
+      mediaId: cp.mediaId || editorMediaId || '',
+      date: cp.scheduledDate instanceof Date ? cp.scheduledDate.toISOString().slice(0, 10) : (new Date(cp.scheduledDate)).toISOString().slice(0,10),
+      platforms: cp.platforms || ['instagram'],
+      title: cp.title || '',
+      status: cp.status || 'scheduled'
+    }));
+
+    setPosts((p) => [...p, ...newScheduled]);
+    // close editor and clear
+    setIsEditorOpen(false);
+    setEditorMediaId(null);
+    setEditorMediaUrl(null);
+    setEditorInitialDates(undefined);
   };
 
   return (
@@ -190,18 +207,22 @@ export default function Home() {
 
           <div className="flex gap-4 flex-col md:flex-row">
             <div className="w-full md:w-1/3">
-              <label className="block mb-2 text-sm font-medium">Select files</label>
-              <input
-                type="file"
-                multiple
-                accept="image/*,video/*,application/pdf"
-                onChange={(e) => onFiles(e.target.files)}
-                className="block w-full text-sm text-gray-600"
-              />
+              <ContentUploader
+                selectedPlatforms={PLATFORMS.map(p => p.id)}
+                onMediaUpload={(uploaded) => {
+                  // map uploaded MediaFile -> MediaItem used in this page
+                  const mapped = uploaded.map((u) => ({
+                    id: u.id,
+                    file: u.file,
+                    url: u.url,
+                    type: u.type === 'image' ? ('image' as const) : (u.type === 'video' ? ('video' as const) : ('other' as const)),
+                    name: u.file.name,
+                    platforms: (u.platforms.map((pf) => pf.platform.split('-')[0]) as unknown) as PlatformId[],
+                  }));
 
-              <div className="mt-4 text-sm text-gray-500">
-                Accepted: images, videos, pdf. Select platforms on each item before dragging.
-              </div>
+                  setMedia((m) => [...mapped, ...m]);
+                }}
+              />
             </div>
 
             <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -271,7 +292,7 @@ export default function Home() {
         {/* Calendar */}
         <section className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Calendar — {currentMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</h2>
+            <h2 className="text-lg font-semibold">Calendar — {format(currentMonth, 'MMMM yyyy')}</h2>
             <div className="flex items-center gap-2">
               <button onClick={prevMonth} className="px-3 py-1 rounded bg-gray-100">Prev</button>
               <button onClick={nextMonth} className="px-3 py-1 rounded bg-gray-100">Next</button>
@@ -297,7 +318,7 @@ export default function Home() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="text-sm font-medium">{day.getDate()}</div>
-                    <div className="text-xs text-gray-400">{day.toLocaleDateString()}</div>
+                    <div className="text-xs text-gray-400">{format(day, 'MMM d, yyyy')}</div>
                   </div>
 
                   <div className="space-y-2">
@@ -352,6 +373,17 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {/* render PostEditor modal */}
+      <PostEditor
+        isOpen={isEditorOpen}
+        onClose={() => { setIsEditorOpen(false); setEditorMediaId(null); setEditorMediaUrl(null); setEditorInitialDates(undefined); }}
+        onSave={() => { /* fallback single save not used */ }}
+        onSaveMultiple={handleSaveMultiplePosts}
+        mediaId={editorMediaId || undefined}
+        mediaUrl={editorMediaUrl || undefined}
+        initialDates={editorInitialDates}
+      />
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
