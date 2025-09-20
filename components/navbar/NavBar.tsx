@@ -60,7 +60,7 @@ export default function NavBar() {
           <div className="flex items-center gap-3">
               <Link href="/">
                 <Image 
-                  src="/logo.png"   // path relative to /public
+                  src="/image.svg"   // path relative to /public
                   alt="Marketinc Logo"
                   width={36}        // set the pixel size
                   height={36}
