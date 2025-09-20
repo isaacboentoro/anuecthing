@@ -18,7 +18,7 @@ export default function IdeaPage({ params }: { params: { id: string } }) {
 
   // Pick the title based on the id, fallback if not found
   const title = titles[id] || "Unknown Idea";
-  const body = body[id] || "Unknown Idea";
+  const body = bodys[id] || "Unknown Idea";
 
   return (
     <div className="min-h-screen bg-white">
