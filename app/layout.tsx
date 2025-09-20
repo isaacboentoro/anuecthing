@@ -26,8 +26,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <main className="flex-grow min-h-screen bg-background text-foreground">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <main className="flex-grow min-h-screen bg-white text-gray-900">
             {children}
           </main>
         </ThemeProvider>
