@@ -1,5 +1,6 @@
 import React from 'react';
 import ArticleList from '@/components/ideas/ArticleList';
+import TikTokSection from '@/components/ideas/TikTokSection';
 
 const sampleArticles = [
   {
@@ -42,16 +43,22 @@ const sampleTrends = [
 
 export default function IdeasTabPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Ideas</h1>
             <p className="text-gray-600 mt-1">Trends, hashtags and article ideas for social media right now.</p>
           </div>
         </div>
 
-        <ArticleList articles={sampleArticles} trends={sampleTrends} />
+        <div className="space-y-8">
+          {/* TikTok Trending Section */}
+          <TikTokSection />
+          
+          {/* Articles and General Trends Section */}
+          <ArticleList articles={sampleArticles} trends={sampleTrends} />
+        </div>
       </div>
     </div>
   );

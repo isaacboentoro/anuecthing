@@ -202,10 +202,14 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   return (
     // overlay centers modal; modal is a flex column so header/content/footer layout allows inner scrolling
     <div
-      className={`fixed inset-0 z-50 p-4 flex items-start justify-center overflow-auto transition-opacity duration-200 ${animateIn ? "opacity-100" : "opacity-0"} backdrop-blur-sm bg-black/40`}
+      className={`fixed inset-0 z-50 p-4 flex items-center justify-center overflow-hidden overscroll-contain transition-opacity duration-200 ${animateIn ? "opacity-100" : "opacity-0"} backdrop-blur-sm bg-black/40`}
       aria-hidden={!animateIn}
+      style={{ willChange: 'opacity' }}
     >
-      <div className={`bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden mx-auto transform transition-all duration-200 ${animateIn ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}`}>
+      <div
+        className={`bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden mx-auto transform-gpu transition-all duration-200 ${animateIn ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}`}
+        style={{ willChange: 'transform, opacity' }}
+      >
         <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">{post ? "Edit Post" : "Create New Post"}</h2>
           <div className="flex items-center gap-2">
@@ -221,7 +225,10 @@ export const PostEditor: React.FC<PostEditorProps> = ({
         {/* content area: flex row with editor and preview. Make it grow and allow inner scrolling */}
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Editor Panel */}
-          <div className={`${showPreview ? "w-1/2" : "w-full"} p-6 overflow-y-auto border-r min-h-0`}>
+          <div
+            className={`${showPreview ? "w-1/2" : "w-full"} p-6 overflow-y-auto overscroll-contain border-r min-h-0`}
+            style={{ contain: 'layout paint style' }}
+          >
             <div className="space-y-6">
               {/* Title */}
               <div>
@@ -331,7 +338,10 @@ export const PostEditor: React.FC<PostEditorProps> = ({
 
           {/* Preview Panel */}
           {showPreview && (
-            <div className="w-1/2 p-6 bg-gray-50 overflow-y-auto min-h-0">
+            <div
+              className="w-1/2 p-6 bg-gray-50 overflow-y-auto overscroll-contain min-h-0"
+              style={{ contain: 'layout paint style' }}
+            >
               <h3 className="font-medium text-gray-800 mb-4">Preview</h3>
               <div className="space-y-4">
                 {platforms.map((platformId) => {

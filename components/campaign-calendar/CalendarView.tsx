@@ -81,13 +81,13 @@ const CalendarDay: React.FC<{
     <div
       ref={drop as any}
       onDoubleClick={() => onOpenDay?.(date)}
-      // use an inset ring and bring the cell above neighbors so the highlight isn't clipped/overlapped
-      className={`min-h-[120px] p-2 border border-gray-200 ${
-        !isCurrentMonth ? 'bg-gray-50 text-gray-400' : isPast ? 'bg-gray-100 text-gray-400' : 'bg-white'
-      } ${isOver ? 'bg-blue-50' : ''} ${isToday ? 'ring-inset ring-2 ring-blue-400 bg-blue-50 relative z-10' : ''}`}
+      // fixed height per cell; scroll content inside to avoid growing the whole grid
+      className={`h-32 md:h-36 lg:h-40 flex flex-col p-2 border border-gray-200 ${
+         !isCurrentMonth ? 'bg-gray-50 text-gray-400' : isPast ? 'bg-gray-100 text-gray-400' : 'bg-white'
+       } ${isOver ? 'bg-blue-50' : ''} ${isToday ? 'ring-inset ring-2 ring-blue-400 bg-blue-50 relative z-10' : ''}`}
       aria-current={isToday ? 'date' : undefined}
     >
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex justify-between items-start mb-1 flex-shrink-0">
         <span className={`text-sm ${isToday ? 'font-semibold text-blue-700' : 'font-medium'}`}>{format(date, 'd')}</span>
         <button
           onClick={() => !isPast && onCreatePost(date)}
@@ -97,7 +97,7 @@ const CalendarDay: React.FC<{
           <Plus size={14} />
         </button>
       </div>
-      <div className="space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1 pr-1">
         {dayPosts.map((post) => (
           <div key={post.id} className="flex flex-wrap gap-1">
             <div
@@ -226,38 +226,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       <AnimatePresence initial={false} custom={direction} mode="wait">
          <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <motion.div
-            key={format(monthStart, 'yyyy-MM')}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
-            className="grid grid-cols-7 gap-0 max-h-[70vh] overflow-y-auto"
-            style={{ minHeight: 320 }} // keeps layout stable during animation
-          >
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div
-                key={day}
-                className="bg-gray-50 p-3 text-center font-medium text-gray-700 border-b border-gray-200 sticky top-0 z-10"
-              >
-                {day}
-              </div>
-            ))}
-            
-            {calendarDays.map((date) => (
-              <CalendarDay
-                key={date.toISOString()}
-                date={date}
-                posts={posts}
-                isCurrentMonth={isSameMonth(date, currentDate)}
-                onPostMove={onPostMove}
-                onCreatePost={onCreatePost}
-                onEditPost={onEditPost}
-                onOpenDay={openDayModal}
-              />
-            ))}
-          </motion.div>
+           <motion.div
+             key={format(monthStart, 'yyyy-MM')}
+             custom={direction}
+             variants={variants}
+             initial="enter"
+             animate="center"
+             transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
+             className="grid grid-cols-7 gap-0"
+             style={{ minHeight: 320 }} // keeps layout stable during animation
+           >
+             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+               <div key={day} className="bg-gray-50 p-3 text-center font-medium text-gray-700 border-b border-gray-200">
+                 {day}
+               </div>
+             ))}
+             
+             {calendarDays.map((date) => (
+               <CalendarDay
+                 key={date.toISOString()}
+                 date={date}
+                 posts={posts}
+                 isCurrentMonth={isSameMonth(date, currentDate)}
+                 onPostMove={onPostMove}
+                 onCreatePost={onCreatePost}
+                 onEditPost={onEditPost}
+                 onOpenDay={openDayModal}
+               />
+             ))}
+           </motion.div>
          </div>
        </AnimatePresence>
        {/* Day modal: show all posts for a day (uses same animation classes as PostEditor) */}
