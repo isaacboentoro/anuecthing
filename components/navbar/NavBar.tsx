@@ -62,7 +62,7 @@ export default function NavBar() {
             </div>
 
             <div className="transition-opacity duration-200">
-              <div className="text-sm font-semibold text-gray-800">Anuecthing</div>
+              <div className="text-sm font-semibold text-gray-800">Marketinc</div>
             </div>
           </div>
 
