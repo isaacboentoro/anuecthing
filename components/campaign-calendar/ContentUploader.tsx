@@ -116,11 +116,13 @@ export const ContentUploader: React.FC<ContentUploaderProps> = ({
     <div className="space-y-6">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        // ensure full width/height, box-sizing and centered content so the border is visible on all sides
+        className={`w-full min-h-[160px] box-border flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
           isDragActive 
             ? 'border-blue-400 bg-blue-50' 
             : 'border-gray-300 hover:border-gray-400'
         }`}
+        style={{ overflow: 'visible' }}
       >
         <input {...getInputProps()} />
         <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />

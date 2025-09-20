@@ -4,6 +4,7 @@ import Image from "next/image";
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Search, Command } from 'lucide-react';
 
 const NavItem = ({ href, label, active }: { href: string; label: string; active: boolean }) => (
   <Link
@@ -80,6 +81,27 @@ export default function NavBar() {
               <NavItem href="/ideas-tab" label="Ideas" active={pathname.startsWith('/ideas-tab')} />
               <NavItem href="/settings" label="Settings" active={pathname.startsWith('/settings')} />
             </nav>
+
+            {/* Open Command Palette (Alt+K) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && (window as any).marketincOpenCommandPalette) {
+                  (window as any).marketincOpenCommandPalette();
+                } else {
+                  document.dispatchEvent(new Event('marketinc:openCommandPalette'));
+                }
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              aria-label="Open search (Alt+K)"
+              title="Open search (Alt+K)"
+            >
+              <Search size={16} className="text-gray-700" />
+              <span className="hidden sm:inline">Search</span>
+              <span className="hidden md:inline-flex items-center gap-1 text-xs text-gray-500 ml-1">
+                <Command size={12} /> K
+              </span>
+            </button>
 
             <div className="w-px h-6 bg-transparent" />
           </div>

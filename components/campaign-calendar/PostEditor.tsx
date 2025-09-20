@@ -121,16 +121,22 @@ export const PostEditor: React.FC<PostEditorProps> = ({
     };
   }, [isOpen]);
 
+  // detect editing early so we can branch logic
+  const isEditing = typeof post?.id === "string" && post?.id.length > 0;
+
   const handleSubmit = (action: "save" | "schedule" | "publish") => {
     const timeStr = '12:00';
     const [hours, minutes] = timeStr.split(":").map(Number);
 
-    const baseDates = [scheduledDate, ...additionalDates.map((d) => new Date(d))].filter((d): d is Date => d !== undefined);
-    const postsToCreate: Post[] = baseDates.map((d) => {
-      const scheduledDateTime = new Date(d);
-      scheduledDateTime.setHours(hours, minutes);
-      return {
-        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+    // compute one scheduled date/time
+    const baseDate = scheduledDate ?? new Date();
+    const scheduledDateTime = new Date(baseDate);
+    scheduledDateTime.setHours(hours, minutes);
+
+    if (isEditing) {
+      // update the existing post (keep the same id)
+      const updated: Post = {
+        id: post!.id,
         title,
         content,
         platforms,
@@ -143,18 +149,43 @@ export const PostEditor: React.FC<PostEditorProps> = ({
             : "draft",
         mediaId: (post as any)?.mediaId || mediaId,
       };
-    });
 
-    if (action === "publish" && onPublish) {
-      // publish the first one via onPublish for compatibility
-      onPublish(postsToCreate[0]);
-    }
+      if (action === "publish" && onPublish) {
+        onPublish(updated);
+      }
+      onSave(updated);
+    } else {
+      // creating new post(s); include additionalDates if provided
+      const baseDates = [scheduledDate, ...additionalDates.map((d) => new Date(d))].filter(
+        (d): d is Date => d !== undefined
+      );
+      const postsToCreate: Post[] = baseDates.map((d) => {
+        const dt = new Date(d);
+        dt.setHours(hours, minutes);
+        return {
+          id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+          title,
+          content,
+          platforms,
+          scheduledDate: dt,
+          status:
+            action === "publish"
+              ? "published"
+              : action === "schedule"
+              ? "scheduled"
+              : "draft",
+          mediaId: (post as any)?.mediaId || mediaId,
+        };
+      });
 
-    if (onSaveMultiple) {
-      onSaveMultiple(postsToCreate);
-    } else if (postsToCreate.length > 0) {
-      // fallback: call onSave for the first item
-      onSave(postsToCreate[0]);
+      if (action === "publish" && onPublish) {
+        onPublish(postsToCreate[0]);
+      }
+      if (onSaveMultiple) {
+        onSaveMultiple(postsToCreate);
+      } else if (postsToCreate.length > 0) {
+        onSave(postsToCreate[0]);
+      }
     }
 
     onClose();
@@ -167,8 +198,6 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   };
 
   if (!mounted) return null;
-
-  const isEditing = typeof post?.id === "string" && post?.id.length > 0;
 
   return (
     // overlay centers modal; modal is a flex column so header/content/footer layout allows inner scrolling
