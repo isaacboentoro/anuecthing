@@ -3,17 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Calendar, Clock, Send, Save, Eye } from "lucide-react";
 import { format } from "date-fns";
-
-interface Post {
-  id?: string;
-  title: string;
-  content: string;
-  platforms: string[];
-  scheduledDate: Date;
-  scheduledTime: string;
-  status: "draft" | "scheduled" | "published";
-  mediaId?: string;
-}
+import type { Post } from './types';
 
 interface PostEditorProps {
   post?: Post;
@@ -31,6 +21,8 @@ interface PostEditorProps {
   // new: save multiple posts at once
   onSaveMultiple?: (posts: Post[]) => void;
   onPublish?: (post: Post) => void;
+  // Add contentUploader prop
+  contentUploader?: React.ReactNode;
 }
 
 const PLATFORMS = [
@@ -52,6 +44,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   onPublish,
   mediaId,
   mediaUrl,
+  contentUploader, // add here
 }) => {
   const [formData, setFormData] = useState<Post>({
     title: "",
@@ -90,7 +83,8 @@ export const PostEditor: React.FC<PostEditorProps> = ({
   }, [post, initialDate, initialDates]);
 
   const handleSubmit = (action: "save" | "schedule" | "publish") => {
-    const [hours, minutes] = formData.scheduledTime.split(":").map(Number);
+    const timeStr = formData.scheduledTime || '12:00';
+    const [hours, minutes] = timeStr.split(":").map(Number);
 
     const baseDates = [formData.scheduledDate, ...additionalDates.map((d) => new Date(d))];
     const postsToCreate: Post[] = baseDates.map((d) => {
@@ -216,6 +210,9 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Content Uploader */}
+              {contentUploader}
 
               {/* Media preview if provided */}
               {mediaUrl && (

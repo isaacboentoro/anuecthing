@@ -81,14 +81,15 @@ export const ContentUploader: React.FC<ContentUploaderProps> = ({
       const specs = PLATFORM_SPECS[platform as keyof typeof PLATFORM_SPECS];
       if (specs) {
         Object.entries(specs).forEach(([format, dimensions]) => {
+          const hasDuration = (dimensions as any).duration as number | undefined;
           if (
-            (mediaType === 'image' && !dimensions.duration) ||
-            (mediaType === 'video' && dimensions.duration)
+            (mediaType === 'image' && !hasDuration) ||
+            (mediaType === 'video' && !!hasDuration)
           ) {
             formats.push({
               platform: `${platform}-${format}`,
-              dimensions: { width: dimensions.width, height: dimensions.height },
-              duration: dimensions.duration
+              dimensions: { width: (dimensions as any).width, height: (dimensions as any).height },
+              duration: hasDuration
             });
           }
         });

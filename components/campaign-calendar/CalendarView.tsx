@@ -6,15 +6,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  platforms: string[];
-  scheduledDate: Date;
-  status: 'draft' | 'scheduled' | 'published';
-  media?: string[];
-}
+import type { Post } from './types';
 
 interface CalendarViewProps {
   posts: Post[];
@@ -33,7 +25,7 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
 
   return (
     <div
-      ref={drag}
+      ref={drag as any}
       className={`bg-white rounded-lg p-2 mb-2 shadow-sm border border-gray-200 cursor-move text-xs ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -80,7 +72,7 @@ const CalendarDay: React.FC<{
 
   return (
     <div
-      ref={drop}
+      ref={drop as any}
       className={`min-h-[120px] p-2 border border-gray-200 ${
         !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
       } ${isOver ? 'bg-blue-50' : ''}`}
